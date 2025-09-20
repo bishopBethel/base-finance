@@ -26,6 +26,7 @@ export function useStore() {
       addPayslips: store.addPayslips.bind(store),
       updatePayslip: store.updatePayslip.bind(store),
       toggleLocalStorage: store.toggleLocalStorage.bind(store),
+      resetToSeed: store.resetToSeed.bind(store),
     }
   };
 }
