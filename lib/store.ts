@@ -1,5 +1,5 @@
 import { AppState, Employee, PayrollRun, Payslip } from './types';
-import { seedData } from './seed';
+import { seedData, createSeed } from './seed';
 
 class Store {
   private state: AppState;
@@ -21,7 +21,8 @@ class Store {
         }
       }
     }
-    return seedData;
+    // No saved state found — return deterministic seed
+    return createSeed();
   }
 
   private saveState() {
@@ -140,6 +141,16 @@ class Store {
       this.saveState();
     } else if (typeof window !== 'undefined') {
       localStorage.removeItem('payroll-app-state');
+    }
+    this.notify();
+  }
+
+  // Reset the store to deterministic seed. Optionally pass an integer seed for different deterministic data.
+  resetToSeed(seed?: number): void {
+    const newState = typeof seed === 'number' ? createSeed(seed) : createSeed();
+    this.state = newState;
+    if (this.state.useLocalStorage && typeof window !== 'undefined') {
+      localStorage.setItem('payroll-app-state', JSON.stringify(this.state));
     }
     this.notify();
   }

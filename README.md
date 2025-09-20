@@ -172,6 +172,24 @@ npm start
   * 2–3 historical payroll runs with payslips.
 * To reset to seed: turn **off** persistence in **Settings**, reload.
 
+### Deterministic seeding & reset helper
+
+The project includes a deterministic seed generator and a programmatic reset helper:
+
+- `createSeed(seed?: number)` — returns a deterministic `AppState`. Passing an integer `seed` will create a different, repeatable dataset.
+- `store.resetToSeed(seed?: number)` — resets the in-memory store and `localStorage` (if enabled) to the deterministic seed and notifies UI subscribers.
+
+You can call the helper from client code via the `useStore` hook (the hook exposes `actions.resetToSeed`). Example:
+
+```tsx
+import { useStore } from '@/hooks/use-store';
+
+function ResetButton() {
+  const { actions } = useStore();
+  return <button onClick={() => actions.resetToSeed()}>Reset to demo seed</button>;
+}
+```
+
 ---
 
 ## Persistence
