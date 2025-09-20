@@ -21,6 +21,14 @@ export interface PayrollRun {
   status: 'Draft' | 'Processed';
   notes?: string;
   employeeIds: string[];
+  // Optional per-run employee adjustments (earnings/deductions) used while in Draft state
+  adjustments?: Record<
+    string,
+    {
+      earnings: Earning[];
+      deductions: Deduction[];
+    }
+  >;
 }
 
 export interface Earning {
