@@ -1,0 +1,58 @@
+name: "Bug report"
+about: "Report a bug affecting UI, data, or accessibility (a11y). Provide steps to reproduce and expected behavior."
+title: "[BUG] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: scope
+    attributes:
+      label: "Affected area"
+      description: "Choose the area this bug affects"
+      options:
+        - label: "UI"
+          value: "ui"
+        - label: "Data"
+          value: "data"
+        - label: "Accessibility (a11y)"
+          value: "a11y"
+        - label: "Other"
+          value: "other"
+  - type: textarea
+    id: description
+    attributes:
+      label: "Describe the bug"
+      description: "A clear and concise description of the bug"
+      placeholder: "What is the bug?"
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: "Steps to reproduce"
+      description: "List the exact steps to reproduce the behavior"
+      placeholder: "1. Go to...\n2. Click...\n3. Observe..."
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior"
+      description: "What you expected to happen"
+      placeholder: "Describe expected behavior"
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: "Actual behavior"
+      description: "What actually happened"
+      placeholder: "Describe actual behavior"
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots / GIFs"
+      description: "Attach screenshots, GIFs, or links demonstrating the issue"
+      placeholder: "https://example.com/screenshot.png"
+  - type: input
+    id: environment
+    attributes:
+      label: "Environment"
+      description: "Browser, OS, app version, or other relevant environment info"
+      placeholder: "Chrome 120 / macOS 14"
