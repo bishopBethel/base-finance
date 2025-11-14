@@ -1,0 +1,46 @@
+name: "Feature request"
+about: "Propose a new feature. Use this for UI, data, or accessibility (a11y) requests."
+title: ""
+labels: ["feature"]
+body:
+  - type: dropdown
+    id: scope
+    attributes:
+      label: "Affected area"
+      description: "Choose the area this feature applies to"
+      options:
+        - label: "UI"
+          value: "ui"
+        - label: "Data"
+          value: "data"
+        - label: "Accessibility (a11y)"
+          value: "a11y"
+        - label: "Other"
+          value: "other"
+  - type: textarea
+    id: summary
+    attributes:
+      label: "Short summary"
+      description: "One-sentence summary of the feature"
+      placeholder: "Add a short summary"
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: "Context / Why is this needed?"
+      description: "Explain the problem this solves and why it's important"
+      placeholder: "Explain the motivation"
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: "Expected behavior"
+      description: "Describe the expected behavior or outcome"
+      placeholder: "What should happen?"
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: "Screenshots / GIFs (recommended for UI changes)"
+      description: "Paste links to mockups, screenshots, or GIFs"
+      placeholder: "https://example.com/screenshot.png"
