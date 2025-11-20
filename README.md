@@ -1,4 +1,4 @@
-# Simple Payroll Web App
+# Simple Payroll Web
 
 A local-only demo payroll manager built with Next.js 14, TypeScript, Tailwind, and **shadcn/ui**.
 No third-party integrations. Dark mode enforced.
@@ -241,3 +241,4 @@ function ResetButton() {
 * PDF export uses browser print (no server-side PDF).
 
 ---
+
