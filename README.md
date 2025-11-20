@@ -242,3 +242,5 @@ function ResetButton() {
 
 ---
 
+
+Powered by Stellar
