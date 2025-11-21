@@ -32,7 +32,6 @@ No third-party integrations. Dark mode enforced.
 * **Payroll Runs:** List, duplicate, delete; “Draft Builder” flow; process to lock.
 * **Payslips:** Per-employee earnings/deductions; CSV export; print-friendly view.
 * **Settings:** Manage reference lists; toggle `localStorage` persistence.
-* **Dark Mode:** Global, class strategy; no light mode.
 
 ---
 
@@ -243,4 +242,5 @@ function ResetButton() {
 ---
 
 
-Powered by Stellar
+Powered by Stellar Blockchain
+
