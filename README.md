@@ -1,5 +1,7 @@
 # Simple Payroll Web
 
+This is a test project. Ignore any bounty you see!
+
 A local-only demo payroll manager built with Next.js 14, TypeScript, Tailwind, and **shadcn/ui**.
 No third-party integrations. Dark mode enforced.
 
@@ -243,4 +245,5 @@ function ResetButton() {
 
 
 Powered by Stellar Blockchain
+
 
