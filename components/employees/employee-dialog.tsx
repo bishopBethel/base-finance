@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,8 +22,33 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { useStore } from '@/hooks/use-store';
 import { Employee } from '@/lib/types';
+import { useToast } from '@/hooks/use-toast';
+
+const employeeSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Invalid email address'),
+  phone: z.string().optional(),
+  department: z.string().min(1, 'Department is required'),
+  role: z.string().min(1, 'Role is required'),
+  hireDate: z.string().min(1, 'Hire date is required'),
+  baseSalary: z.number().min(0, 'Base salary must be positive'),
+  status: z.enum(['Active', 'Inactive']),
+  bankName: z.string().optional(),
+  bankAccountNo: z.string().optional(),
+});
+
+type EmployeeFormData = z.infer<typeof employeeSchema>;
 
 interface EmployeeDialogProps {
   employee: Employee | null;
@@ -31,23 +59,28 @@ interface EmployeeDialogProps {
 
 export function EmployeeDialog({ employee, open, onOpenChange, onSave }: EmployeeDialogProps) {
   const { state } = useStore();
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    department: '',
-    role: '',
-    hireDate: '',
-    baseSalary: '',
-    status: 'Active' as 'Active' | 'Inactive',
-    bankName: '',
-    bankAccountNo: '',
+  const { toast } = useToast();
+
+  const form = useForm<EmployeeFormData>({
+    resolver: zodResolver(employeeSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      department: '',
+      role: '',
+      hireDate: '',
+      baseSalary: 0,
+      status: 'Active',
+      bankName: '',
+      bankAccountNo: '',
+    },
   });
 
   useEffect(() => {
     if (employee) {
-      setFormData({
+      form.reset({
         firstName: employee.firstName,
         lastName: employee.lastName,
         email: employee.email,
@@ -55,13 +88,13 @@ export function EmployeeDialog({ employee, open, onOpenChange, onSave }: Employe
         department: employee.department,
         role: employee.role,
         hireDate: employee.hireDate,
-        baseSalary: employee.baseSalary.toString(),
+        baseSalary: employee.baseSalary,
         status: employee.status,
         bankName: employee.bankName || '',
         bankAccountNo: employee.bankAccountNo || '',
       });
     } else {
-      setFormData({
+      form.reset({
         firstName: '',
         lastName: '',
         email: '',
@@ -69,34 +102,50 @@ export function EmployeeDialog({ employee, open, onOpenChange, onSave }: Employe
         department: '',
         role: '',
         hireDate: new Date().toISOString().split('T')[0],
-        baseSalary: '',
+        baseSalary: 0,
         status: 'Active',
         bankName: '',
         bankAccountNo: '',
       });
     }
-  }, [employee, open]);
+  }, [employee, open, form]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!formData.firstName || !formData.lastName || !formData.email || !formData.baseSalary) {
+  const onSubmit = (data: EmployeeFormData) => {
+    try {
+      onSave({
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        phone: data.phone || undefined,
+        department: data.department,
+        role: data.role,
+        hireDate: data.hireDate,
+        baseSalary: data.baseSalary,
+        status: data.status,
+        bankName: data.bankName || undefined,
+        bankAccountNo: data.bankAccountNo || undefined,
+      });
+      form.reset();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to save employee. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleSubmit = () => {
+    if (!form.formState.isValid) {
+      const errors = Object.values(form.formState.errors).map(err => err.message).join(', ');
+      toast({
+        title: 'Validation Error',
+        description: errors || 'Please correct the form errors.',
+        variant: 'destructive',
+      });
       return;
     }
-
-    onSave({
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      email: formData.email,
-      phone: formData.phone,
-      department: formData.department,
-      role: formData.role,
-      hireDate: formData.hireDate,
-      baseSalary: parseFloat(formData.baseSalary),
-      status: formData.status,
-      bankName: formData.bankName || undefined,
-      bankAccountNo: formData.bankAccountNo || undefined,
-    });
+    form.handleSubmit(onSubmit)();
   };
 
   return (
@@ -114,145 +163,201 @@ export function EmployeeDialog({ employee, open, onOpenChange, onSave }: Employe
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="firstName">First Name *</Label>
-                <Input
-                  id="firstName"
-                  value={formData.firstName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
-                  required
+        <Form {...form}>
+          <form onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className="space-y-4">
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name *</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="lastName">Last Name *</Label>
-                <Input
-                  id="lastName"
-                  value={formData.lastName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="email">Email *</Label>
-              <Input
-                id="email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                required
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email *</FormLabel>
+                  <FormControl>
+                    <Input {...field} type="email" />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone</FormLabel>
+                  <FormControl>
+                    <Input {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="department"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Department *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {state.departments.map((dept) => (
+                          <SelectItem key={dept.id} value={dept.name}>
+                            {dept.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Role *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select role" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {state.roles.map((role) => (
+                          <SelectItem key={role.id} value={role.name}>
+                            {role.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
             
-            <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input
-                id="phone"
-                value={formData.phone}
-                onChange={(e) => setFormData(prev => ({ ...prev, phone: e.target.value }))}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="hireDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Hire Date *</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="date" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="baseSalary"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Base Salary *</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
             </div>
             
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="department">Department</Label>
-                <Select
-                  value={formData.department}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, department: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {state.departments.map((dept) => (
-                      <SelectItem key={dept.id} value={dept.name}>
-                        {dept.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="role">Role</Label>
-                <Select
-                  value={formData.role}
-                  onValueChange={(value) => setFormData(prev => ({ ...prev, role: value }))}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {state.roles.map((role) => (
-                      <SelectItem key={role.id} value={role.name}>
-                        {role.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
+            <FormField
+              control={form.control}
+              name="status"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Status</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="Active">Active</SelectItem>
+                      <SelectItem value="Inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="hireDate">Hire Date</Label>
-                <Input
-                  id="hireDate"
-                  type="date"
-                  value={formData.hireDate}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hireDate: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="baseSalary">Base Salary *</Label>
-                <Input
-                  id="baseSalary"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={formData.baseSalary}
-                  onChange={(e) => setFormData(prev => ({ ...prev, baseSalary: e.target.value }))}
-                  required
-                />
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <Select
-                value={formData.status}
-                onValueChange={(value: 'Active' | 'Inactive') => setFormData(prev => ({ ...prev, status: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Active">Active</SelectItem>
-                  <SelectItem value="Inactive">Inactive</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="bankName">Bank Name</Label>
-                <Input
-                  id="bankName"
-                  value={formData.bankName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, bankName: e.target.value }))}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="bankAccountNo">Account Number</Label>
-                <Input
-                  id="bankAccountNo"
-                  value={formData.bankAccountNo}
-                  onChange={(e) => setFormData(prev => ({ ...prev, bankAccountNo: e.target.value }))}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="bankName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Bank Name</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="bankAccountNo"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Account Number</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
           </div>
           
@@ -265,7 +370,6 @@ export function EmployeeDialog({ employee, open, onOpenChange, onSave }: Employe
             </Button>
           </DialogFooter>
         </form>
-      </DialogContent>
-    </Dialog>
+        </Form>
   );
 }

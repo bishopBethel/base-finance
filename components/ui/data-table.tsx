@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, forwardRef, useImperativeHandle } from 'react';
 import {
   ColumnDef,
   flexRender,
@@ -11,6 +11,7 @@ import {
   useReactTable,
   ColumnFiltersState,
   SortingState,
+  Table as TanstackTable,
 } from '@tanstack/react-table';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -36,14 +37,17 @@ interface DataTableProps<TData, TValue> {
   data: TData[];
   searchKey?: string;
   searchPlaceholder?: string;
+  filters?: React.ReactNode;
 }
 
-export function DataTable<TData, TValue>({
-  columns,
-  data,
-  searchKey,
-  searchPlaceholder = 'Search...',
-}: DataTableProps<TData, TValue>) {
+export interface DataTableRef<TData> {
+  table: TanstackTable<TData>;
+}
+
+export const DataTable = forwardRef<
+  DataTableRef<any>,
+  DataTableProps<any, any>
+>(({ columns, data, searchKey, searchPlaceholder = 'Search...', filters }, ref) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
 
@@ -62,8 +66,13 @@ export function DataTable<TData, TValue>({
     },
   });
 
+  useImperativeHandle(ref, () => ({
+    table,
+  }));
+
   return (
     <div className="space-y-4">
+      {filters}
       {searchKey && (
         <div className="flex items-center py-4">
           <Input
@@ -191,7 +200,9 @@ export function DataTable<TData, TValue>({
               </Button>
             </div>
           </div>
-        </div>
+ );
+
+DataTable.displayName = 'DataTable';       </div>
       </div>
     </div>
   );
