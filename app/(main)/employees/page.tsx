@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { DataTable } from '@/components/ui/data-table';
+import { DataTable, DataTableRef } from '@/components/ui/data-table';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { 
   DropdownMenu, 
@@ -12,6 +12,17 @@ import {
   DropdownMenuItem, 
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 import { useStore } from '@/hooks/use-store';
 import { Employee } from '@/lib/types';
 import { formatCurrency, formatDate } from '@/lib/payroll';
@@ -20,6 +31,13 @@ import { useToast } from '@/hooks/use-toast';
 import { Plus, MoreHorizontal, Edit, Trash2, Download, Eye } from 'lucide-react';
 import { EmployeeDialog } from '@/components/employees/employee-dialog';
 import { EmployeeViewDialog } from '@/components/employees/employee-view-dialog';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 export default function EmployeesPage() {
   const { state, actions } = useStore();
@@ -27,6 +45,50 @@ export default function EmployeesPage() {
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [viewingEmployee, setViewingEmployee] = useState<Employee | null>(null);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const tableRef = useRef<DataTableRef<Employee>>(null);
+  const [departmentFilter, setDepartmentFilter] = useState<string>('');
+  const [statusFilter, setStatusFilter] = useState<string>('');
+  const [employeeToToggle, setEmployeeToToggle] = useState<Employee | null>(null);
+
+  useEffect(() => {
+    if (tableRef.current) {
+      tableRef.current.table.getColumn('department')?.setFilterValue(departmentFilter || undefined);
+    }
+  }, [departmentFilter]);
+
+  useEffect(() => {
+    if (tableRef.current) {
+      tableRef.current.table.getColumn('status')?.setFilterValue(statusFilter || undefined);
+    }
+  }, [statusFilter]);
+
+  const filters = (
+    <div className="flex items-center space-x-2 py-4">
+      <Select value={departmentFilter} onValueChange={setDepartmentFilter}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Filter by department" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">All Departments</SelectItem>
+          {state.departments.map((dept) => (
+            <SelectItem key={dept.id} value={dept.name}>
+              {dept.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Select value={statusFilter} onValueChange={setStatusFilter}>
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="Filter by status" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="">All Statuses</SelectItem>
+          <SelectItem value="Active">Active</SelectItem>
+          <SelectItem value="Inactive">Inactive</SelectItem>
+        </SelectContent>
+      </Select>
+    </div>
+  );
 
   const handleExportCSV = () => {
     const csv = exportEmployeesCSV(state.employees);
@@ -38,12 +100,19 @@ export default function EmployeesPage() {
   };
 
   const handleToggleStatus = (employee: Employee) => {
-    const newStatus = employee.status === 'Active' ? 'Inactive' : 'Active';
-    actions.updateEmployee(employee.id, { status: newStatus });
-    toast({
-      title: `Employee ${newStatus.toLowerCase()}`,
-      description: `${employee.firstName} ${employee.lastName} has been marked as ${newStatus.toLowerCase()}.`,
-    });
+    setEmployeeToToggle(employee);
+  };
+
+  const confirmToggleStatus = () => {
+    if (employeeToToggle) {
+      const newStatus = employeeToToggle.status === 'Active' ? 'Inactive' : 'Active';
+      actions.updateEmployee(employeeToToggle.id, { status: newStatus });
+      toast({
+        title: `Employee ${newStatus.toLowerCase()}`,
+        description: `${employeeToToggle.firstName} ${employeeToToggle.lastName} has been marked as ${newStatus.toLowerCase()}.`,
+      });
+      setEmployeeToToggle(null);
+    }
   };
 
   const handleDeleteEmployee = (employee: Employee) => {
@@ -160,10 +229,12 @@ export default function EmployeesPage() {
         </CardHeader>
         <CardContent>
           <DataTable
+            ref={tableRef}
             columns={columns}
             data={state.employees}
             searchKey="name"
             searchPlaceholder="Search employees..."
+            filters={filters}
           />
         </CardContent>
       </Card>
@@ -205,6 +276,23 @@ export default function EmployeesPage() {
           onOpenChange={(open) => !open && setViewingEmployee(null)}
         />
       )}
+
+      <AlertDialog open={!!employeeToToggle} onOpenChange={(open) => !open && setEmployeeToToggle(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Status Change</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to {employeeToToggle?.status === 'Active' ? 'deactivate' : 'activate'} {employeeToToggle?.firstName} {employeeToToggle?.lastName}?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmToggleStatus}>
+              {employeeToToggle?.status === 'Active' ? 'Deactivate' : 'Activate'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
